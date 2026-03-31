@@ -27,12 +27,12 @@ def generate_restaurant_name_and_items(cuisine):
         template="""Suggest some menu items for {restaurant_name}. Return it as a comma separated string"""
     )
 
-    food_items_chain = LLMChain(llm=llm, prompt=prompt_template_items, output_key="menu_items")
+    food_items_chain = LLMChain(llm=llm, prompt=prompt_template_items, output_key="menu_item")
 
     chain = SequentialChain(
         chains=[name_chain, food_items_chain],
         input_variables=['cuisine'],
-        output_variables=['restaurant_name', "menu_items"]
+        output_variables=['restaurant_name', "menu_item"]
     )
 
     response = chain({'cuisine': cuisine})
