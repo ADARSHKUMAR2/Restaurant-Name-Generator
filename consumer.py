@@ -1,21 +1,48 @@
 from confluent_kafka import Consumer
+import psycopg2
 import json
 
-# 1. Connect to our local Docker Kafka server
+# 1. Connect to PostgreSQL
+print("Connecting to PostgreSQL...")
+conn = psycopg2.connect(
+    dbname="restaurant_analytics",
+    user="admin",
+    password="adminpassword",
+    host="localhost",
+    port="5433"
+)
+cursor = conn.cursor()
+
+# 2. Create the table automatically if it doesn't exist
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS generations (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMP,
+        cuisine_requested VARCHAR(100),
+        restaurant_name TEXT
+    );
+""")
+
+# Force the existing column to upgrade to TEXT just in case it was created as VARCHAR
+cursor.execute("""
+    ALTER TABLE generations 
+    ALTER COLUMN restaurant_name TYPE TEXT;
+""")
+
+conn.commit()
+print("✅ Database table ready (and upgraded to TEXT)!")
+
+# 3. Connect to Redpanda
 consumer = Consumer({
     'bootstrap.servers': 'localhost:9092',
-    'group.id': 'analytics-worker-group',
+    'group.id': 'postgres-writer-group',
     'auto.offset.reset': 'earliest'
 })
-
-# 2. Subscribe to our specific event channel
 consumer.subscribe(['restaurant-events'])
-print("🎧 Kafka Consumer is live! Listening for new generations...")
+print("🎧 Kafka Consumer is live! Listening for events to save...")
 
-# 3. Create an infinite loop to constantly check for messages
 try:
     while True:
-        # Check for a new message every 1 second
         msg = consumer.poll(1.0)
         
         if msg is None:
@@ -24,11 +51,21 @@ try:
             print(f"Error: {msg.error()}")
             continue
 
-        # 4. If we catch a message, decode the JSON and print it!
+        # 4. Decode the message and save to Postgres
         event = json.loads(msg.value().decode('utf-8'))
-        print(f"🚀 CAUGHT EVENT: Someone just generated a {event['cuisine_requested']} restaurant named '{event['restaurant_generated']}'!")
+        
+        cursor.execute("""
+            INSERT INTO generations (timestamp, cuisine_requested, restaurant_name)
+            VALUES (%s, %s, %s)
+        """, (event['timestamp'], event['cuisine_requested'], event['restaurant_generated']))
+        
+        conn.commit() # Lock in the save
+        
+        print(f"💾 SAVED TO DB: {event['cuisine_requested']} -> {event['restaurant_generated']}")
 
 except KeyboardInterrupt:
-    print("Shutting down consumer...")
+    print("Shutting down...")
 finally:
+    cursor.close()
+    conn.close()
     consumer.close()
