@@ -1,14 +1,16 @@
-from langchain_openai import OpenAI
+#from langchain_openai import OpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_classic.chains import LLMChain
 from langchain_classic.chains import SequentialChain
 from dotenv import load_dotenv
+from langchain_community.llms import Ollama
 
 import os
 load_dotenv()
 os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_KEY')
 
-llm = OpenAI(temperature=0.7)
+#llm = OpenAI(temperature=0.7)
+llm = Ollama(model="llama3")
 
 def generate_restaurant_name_and_items(cuisine):
     # Chain 1: Restaurant Name
