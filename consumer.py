@@ -6,6 +6,7 @@ import psycopg2
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from pinecone import Pinecone
+from alerts import send_discord_alert
 
 # Load environment variables
 load_dotenv()
@@ -79,6 +80,10 @@ try:
             ]
         )
         print("   ✅ Full AI Pipeline Complete!")
+
+        # --- STEP D: Fire the Alert! ---
+        print("   📢 Sending Discord Alert...")
+        send_discord_alert(name, cuisine, db_id)
 
 except KeyboardInterrupt:
     print("Shutting down...")

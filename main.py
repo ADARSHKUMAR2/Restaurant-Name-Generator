@@ -5,6 +5,7 @@ from datetime import datetime
 from confluent_kafka import Producer
 import psycopg2
 import pandas as pd
+import time
 
 # Connect our frontend to the Kafka server
 producer = Producer({'bootstrap.servers': 'localhost:9092'})
@@ -28,8 +29,13 @@ with tab1:
     cuisine = st.sidebar.selectbox("Pick a Cuisine", ("Indian", "Mexican", "Italian", "American", "Japanese"))
 
     if cuisine:
+        st.info(f"Cooking up a {cuisine} restaurant...") # Quick visual feedback for the user
+        # ⏱️ TIMER 1: The AI Generation
+        start_ai = time.time()
         # Generate the restaurant
         response = langchain_helper.generate_restaurant_name_and_items(cuisine)
+        end_ai = time.time()
+        print(f"\n⏱️ AI Generation took: {end_ai - start_ai:.2f} seconds")
         
         # Safely extract the restaurant name (handling both string and dict responses)
         if isinstance(response, dict):
@@ -48,8 +54,12 @@ with tab1:
             restaurant_name = response.strip()
             st.header(restaurant_name)
         
+        # ⏱️ TIMER 2: The Kafka Handoff
+        start_kafka = time.time()
         # Fire the Kafka Event!
         log_generation_event(cuisine, restaurant_name)
+        end_kafka = time.time()
+        print(f"⏱️ Kafka routing took: {end_kafka - start_kafka:.2f} seconds")
 
 # --- TAB 2: The Database Viewer ---
 with tab2:
