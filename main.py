@@ -1,9 +1,9 @@
 import streamlit as st
 
 # Import our modular UI components!
-from ui_generator import render_generator_tab
-from analytics import render_dashboard
-from ui_search import render_search_tab
+from ui.ui_generator import render_generator_tab
+from ui.ui_analytics import render_dashboard
+from ui.ui_search import render_search_tab
 
 # 1. Global Page Configuration
 st.set_page_config(page_title="Restaurant Generator", page_icon="🍽️", layout="centered")

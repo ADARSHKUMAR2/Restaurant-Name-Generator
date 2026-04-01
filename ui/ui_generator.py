@@ -1,6 +1,6 @@
 import streamlit as st
-import langchain_helper
-from events import log_generation_event
+from services import langchain_helper
+from services.events import log_generation_event
 
 def render_generator_tab():
     """Renders the UI for generating new restaurants"""

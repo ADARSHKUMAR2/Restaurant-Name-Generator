@@ -1,5 +1,5 @@
 import streamlit as st
-from search import perform_semantic_search
+from services.search import perform_semantic_search
 
 def render_search_tab():
     """Renders the UI for the Pinecone Semantic Search"""

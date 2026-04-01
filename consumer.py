@@ -2,9 +2,9 @@ import json
 from confluent_kafka import Consumer
 
 # Import our customized toolboxes!
-from storage import save_to_postgres, save_to_pinecone
-from ai_agents import write_review, generate_vector
-from alerts import send_discord_alert
+from services.storage import save_to_postgres, save_to_pinecone
+from services.ai_agents import write_review, generate_vector
+from services.alerts import send_discord_alert
 
 # --- SETUP KAFKA ---
 consumer = Consumer({
