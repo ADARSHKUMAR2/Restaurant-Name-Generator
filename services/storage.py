@@ -2,22 +2,47 @@ import os
 import psycopg2
 from pinecone import Pinecone
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
 print("🗄️ Connecting to Databases (Postgres & Pinecone)...")
 
 # 1. Connect to PostgreSQL
-conn = psycopg2.connect(
-    dbname="restaurant_analytics", 
-    user="admin", 
-    password="adminpassword", 
-    host="localhost", 
-    port="5433"
-)
-# This automatically commits every query so we don't have to call conn.commit() manually!
-conn.autocommit = True 
-cursor = conn.cursor()
+MAX_RETRIES = 5
+for attempt in range(MAX_RETRIES):
+    try:
+        # Connect to PostgreSQL
+        conn = psycopg2.connect(
+            dbname="restaurant_analytics", 
+            user="admin", 
+            password="adminpassword", 
+            host=os.getenv("DB_HOST", "localhost"), 
+            port=os.getenv("DB_PORT", "5432") # Notice it defaults to Docker's 5432 port now!
+        )
+        conn.autocommit = True 
+        cursor = conn.cursor()
+        print("   ✅ Connected to Postgres!")
+        
+        # --- Automatically create the table if it was wiped! ---
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS generations (
+                id SERIAL PRIMARY KEY,
+                timestamp TEXT,
+                cuisine_requested TEXT,
+                restaurant_name TEXT
+            )
+        """)
+        print("   ✅ Verified 'generations' table exists!")
+        break # If successful, break out of the loop!
+
+    except psycopg2.OperationalError as e:
+        if attempt < MAX_RETRIES - 1:
+            print(f"   ⏳ Postgres is still booting. Retrying in 3 seconds... (Attempt {attempt + 1}/{MAX_RETRIES})")
+            time.sleep(3)
+        else:
+            print("   ❌ FATAL: Could not connect to Postgres after multiple attempts.")
+            raise e
 
 # 2. Connect to Pinecone
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))

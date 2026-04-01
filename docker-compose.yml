@@ -20,7 +20,7 @@ services:
     depends_on:
       - kafka
 
-  # --- NEW: PostgreSQL Database ---
+  # --- PostgreSQL Database ---
   postgres:
     image: postgres:15
     container_name: postgres_db
@@ -30,3 +30,39 @@ services:
       POSTGRES_DB: restaurant_analytics
     ports:
       - "5433:5432"
+    # --- Tell Docker how to check if Postgres is actually awake ---
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d restaurant_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build: .
+    command: streamlit run main.py --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    env_file: .env
+    environment:
+      - DB_HOST=postgres       # Tell it to look for the docker service named 'postgres'
+      - DB_PORT=5432           # Inside docker, Postgres uses its default port 5432
+      - KAFKA_BROKER=redpanda:29092 # Adjust 'redpanda' if your compose names the service 'kafka'
+    depends_on:
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  ai_consumer:
+    build: .
+    command: python consumer.py
+    env_file: .env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - KAFKA_BROKER=redpanda:29092
+    depends_on:
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy

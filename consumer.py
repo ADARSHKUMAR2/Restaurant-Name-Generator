@@ -1,5 +1,6 @@
 import json
 from confluent_kafka import Consumer
+import os
 
 # Import our customized toolboxes!
 from services.storage import save_to_postgres, save_to_pinecone
@@ -8,7 +9,8 @@ from services.alerts import send_discord_alert
 
 # --- SETUP KAFKA ---
 consumer = Consumer({
-    'bootstrap.servers': 'localhost:9092',
+    # Use the environment variable, but default to localhost if it's missing
+    'bootstrap.servers': os.getenv('KAFKA_BROKER', 'localhost:9092'), 
     'group.id': 'ai-analytics-group',
     'auto.offset.reset': 'earliest'
 })

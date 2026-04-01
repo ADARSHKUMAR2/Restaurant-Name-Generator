@@ -1,6 +1,7 @@
 import streamlit as st
 import psycopg2
 import pandas as pd
+import os
 
 def render_dashboard():
     """Connects to Postgres and draws the Streamlit Analytics Dashboard"""
@@ -14,8 +15,8 @@ def render_dashboard():
                 dbname="restaurant_analytics",
                 user="admin",
                 password="adminpassword",
-                host="localhost",
-                port="5433" 
+                host=os.getenv("DB_HOST", "localhost"), 
+                port=os.getenv("DB_PORT", "5433")
             )
             
             # 2. Grab the data and turn it into a Pandas DataFrame
