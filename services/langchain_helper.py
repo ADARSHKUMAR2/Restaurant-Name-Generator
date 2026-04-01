@@ -1,45 +1,38 @@
-#from langchain_openai import OpenAI
-from langchain_core.prompts import PromptTemplate
-from langchain_classic.chains import LLMChain
-from langchain_classic.chains import SequentialChain
-from dotenv import load_dotenv
-from langchain_community.llms import Ollama
-from langchain_groq import ChatGroq
-
 import os
-load_dotenv()
-#os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_KEY')
+import json
+from groq import Groq
+from dotenv import load_dotenv
 
-#llm = OpenAI(temperature=0.7)
-#llm = Ollama(model="llama3")
-llm = ChatGroq(model_name="llama-3.1-8b-instant")
+load_dotenv()
+
+# Initialize the Lean Brain
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def generate_restaurant_name_and_items(cuisine):
-    # Chain 1: Restaurant Name
-    prompt_template_name = PromptTemplate(
-        input_variables=['cuisine'],
-        template="I want to open a restaurant for {cuisine} food. Suggest a fancy name for this."
+    """
+    Uses Groq API to generate a restaurant name and menu items.
+    Replaces the heavy LangChain implementation.
+    """
+    prompt = (
+        f"Suggest a catchy, creative name for a {cuisine} restaurant "
+        f"and provide a list of 5 popular menu items. "
+        f"Return the response in JSON format with keys: 'restaurant_name' and 'menu_items'."
     )
 
-    name_chain = LLMChain(llm=llm, prompt=prompt_template_name, output_key="restaurant_name")
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile", # High-speed model
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"} # Ensures we get clean JSON back
+        )
+        
+        # Parse the JSON response
+        result = json.loads(completion.choices[0].message.content)
+        return result
 
-    # Chain 2: Menu Items
-    prompt_template_items = PromptTemplate(
-        input_variables=['restaurant_name'],
-        template="""Suggest some menu items for {restaurant_name}. Return it as a comma separated string"""
-    )
-
-    food_items_chain = LLMChain(llm=llm, prompt=prompt_template_items, output_key="menu_item")
-
-    chain = SequentialChain(
-        chains=[name_chain, food_items_chain],
-        input_variables=['cuisine'],
-        output_variables=['restaurant_name', "menu_item"]
-    )
-
-    response = chain({'cuisine': cuisine})
-
-    return response
-
-if __name__ == "__main__":
-    print(generate_restaurant_name_and_items("Italian"))
+    except Exception as e:
+        print(f"❌ Groq API Error: {e}")
+        return {
+            "restaurant_name": f"The {cuisine} Spot",
+            "menu_items": ["Dish 1", "Dish 2", "Dish 3", "Dish 4", "Dish 5"]
+        }

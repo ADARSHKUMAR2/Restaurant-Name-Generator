@@ -15,7 +15,8 @@ def render_generator_tab():
             if 'menu_items' in response:
                 st.header(restaurant_name)
                 st.write("**Menu Items:**")
-                st.write(response['menu_items'].strip())
+                for item in response['menu_items']:
+                    st.write(f"- {item}")
             else:
                 st.header(restaurant_name)
         else:

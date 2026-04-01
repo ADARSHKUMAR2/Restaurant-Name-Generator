@@ -57,12 +57,26 @@ def save_to_postgres(timestamp, cuisine, name):
     
     return cursor.fetchone()[0]
 
-def save_to_pinecone(db_id, vector, metadata):
-    """Links the Postgres ID to the mathematical vector in Pinecone"""
+def save_to_pinecone(db_id, name, cuisine, review, vector):
+    """
+    Saves the restaurant data and its embedding to Pinecone.
+    Matches the 5 arguments called in consumer.py
+    """
+    # Initialize index (ensure this is at the top of your storage.py)
+    # pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+    # index = pc.Index("restaurant-reviews")
+    
     index.upsert(
-        vectors=[{
-            "id": str(db_id),
-            "values": vector,
-            "metadata": metadata
-        }]
+        vectors=[
+            (
+                str(db_id), # ID must be a string
+                vector, 
+                {
+                    "name": name, 
+                    "cuisine": cuisine, 
+                    "review": review
+                } # Metadata for filtering and display
+            )
+        ]
     )
+    print(f"   🌲 Vector saved to Pinecone for ID: {db_id}")
